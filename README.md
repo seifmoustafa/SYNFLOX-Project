@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![SYNFLOX](https://via.placeholder.com/200x80/4F46E5/FFFFFF?text=SYNFLOX)
+![SYNFLOX](assets/images/app-logo.png)
 
 **Enterprise Central Licensing System**
 
