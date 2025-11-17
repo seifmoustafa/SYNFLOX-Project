@@ -1,10 +1,10 @@
-# SYNFLOX - Central Licensing System
+# SYNFLOX Project - Monorepo
 
 <div align="center">
 
 ![SYNFLOX](https://via.placeholder.com/200x80/4F46E5/FFFFFF?text=SYNFLOX)
 
-**Enterprise Software License Management Platform**
+**Enterprise Central Licensing System**
 
 [![.NET 8.0](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-000000)](https://nextjs.org/)
@@ -14,357 +14,45 @@
 
 ---
 
-## 🎯 What is SYNFLOX?
+## 📁 Repository Structure
 
-SYNFLOX is a **Central Licensing System** designed for software vendors who sell multiple enterprise products (ERP, CRM, POS, HR systems, etc.). Instead of each product managing its own licenses, SYNFLOX provides one unified system to control all product licenses from a single dashboard.
+This is a **monorepo** that organizes the SYNFLOX project using Git submodules. Each component lives in its own repository for independent development and versioning.
 
-### The Problem
+### **Submodules**
 
-When you sell multiple software products, managing licenses becomes chaotic:
-
-- Each product has its own licensing code
-- No unified view of customer subscriptions
-- Difficult to manage renewals across products  
-- Different billing cycles create confusion
-- Security vulnerabilities from inconsistent validation
-- High operational costs maintaining multiple systems
-
-### The Solution
-
-**SYNFLOX centralizes everything:**
+| Component | Repository | Description |
+|-----------|-----------|-------------|
+| **Backend** | [SYNFLOX](https://github.com/seifmoustafa/SYNFLOX) | .NET 8 Clean Architecture API |
+| **Frontend** | [synflox-frontend](https://github.com/seifmoustafa/synflox-frontend) | Next.js 14 TypeScript Application |
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    YOUR PRODUCTS                         │
-│                                                          │
-│   ERP  │  CRM  │  POS  │  Inventory  │  HR  │  More    │
-│                                                          │
-│        └───────────────┬──────────────────┘             │
-│                        ↓                                 │
-│              ┌─────────────────────┐                     │
-│              │  SYNFLOX CENTRAL    │                     │
-│              │  License Controller │                     │
-│              └─────────────────────┘                     │
-│                                                          │
-│  ✓ One System Controls All                              │
-│  ✓ Unified Customer View                                │
-│  ✓ Flexible Billing Models                              │
-│  ✓ Automated Renewals                                   │
-│  ✓ Real-time Validation                                 │
-└─────────────────────────────────────────────────────────┘
+SYNFLOX-Project/
+├── SYNFLOX/              → Backend API (submodule)
+├── synflox-frontend/     → Frontend App (submodule)
+├── .gitmodules           → Submodule configuration
+└── README.md             → This file
 ```
 
 ---
 
-## 💼 Business Value
+## 🚀 Quick Start
 
-### For Software Vendors
+### **1. Clone with Submodules**
 
-**Revenue Growth:**
-- Flexible billing (Weekly, Monthly, Quarterly, Yearly, Lifetime)
-- Maximize revenue with multiple pricing tiers
-- Reduce churn with automated renewals
-- Capture enterprise customers with lifetime plans
-
-**Cost Reduction:**
-- Eliminate duplicate licensing code across products
-- Reduce support tickets with unified system
-- Lower operational overhead
-- Single system to maintain and monitor
-
-**Time to Market:**
-- Launch new products without building licensing
-- Focus development on product features
-- Rapid deployment with ready infrastructure
-
-### For Your Customers
-
-**Simplified Experience:**
-- One subscription for all your products
-- Clear visibility into license status
-- Predictable billing
-- No surprise expirations
-
-**Flexible Options:**
-- Choose billing cycle that fits their needs
-- Lifetime plans for permanent access
-- Trial periods to test before buying
-- Easy upgrades to premium tiers
-
----
-
-## 🎁 Core Features
-
-### 1. **Flexible Subscription Plans**
-
-Create unlimited subscription plans with any combination of:
-
-**Duration Types:**
-- **Weekly** (7 days) - Trial or short-term
-- **Bi-Weekly** (14 days) - Extended trials
-- **Monthly** - Standard SaaS model
-- **Quarterly** - 3-month commitment
-- **Semi-Annually** - 6-month plans
-- **Yearly** - Annual subscriptions
-- **Biennial** - 2-year contracts
-- **Triennial** - 3-year enterprise deals
-- **Lifetime** - Permanent access (one-time payment)
-
-**Pricing:**
-- Multi-currency support
-- Different prices per plan tier
-- Custom pricing for enterprise
-
-**Product Bundles:**
-- Mix and match your products
-- Include specific modules
-- Create tiered packages (Basic, Pro, Enterprise)
-
-**Example Plans:**
-```
-Basic Plan:
-- Monthly billing ($29/month)
-- Includes: CRM + Basic POS
-- 100 users
-
-Pro Plan:
-- Quarterly billing ($249/quarter = 17% savings)
-- Includes: ERP + CRM + Full POS + Inventory
-- 500 users
-
-Enterprise Lifetime:
-- One-time payment ($9,999)
-- Includes: All products + All modules
-- Unlimited users
-- Never expires
-```
-
-### 2. **Complete Subscription Management**
-
-**Subscription Lifecycle:**
-```
-Create → Active → Suspend → Resume → Extend → Renew → Upgrade
-   ↓        ↓         ↓         ↓         ↓        ↓        ↓
- Trial    Running   Paused  Restart   Add Time  Continue  Move Up
-```
-
-**Operations:**
-- **Create** subscriptions (with or without trial)
-- **Activate/Suspend/Resume** - Full manual control
-- **Extend** - Add more time
-- **Renew** - Continue at expiration
-- **Upgrade** - Move to higher tier with prorated billing
-- **Cancel** - End subscriptions
-- **Pause** - Temporary hold without losing time
-
-**Automated Workflows:**
-- Auto-renewal for recurring subscriptions
-- Trial to paid conversion
-- Scheduled upgrades
-- Grace period handling
-- Expiration notifications
-
-### 3. **Multi-Product Support**
-
-Organize your portfolio:
-
-**Projects (Products):**
-- Create projects for each main product (ERP, CRM, POS, etc.)
-- Define features per project
-- Include projects in subscription plans
-
-**Modules (Features):**
-- Break down products into modules
-- Sell modules individually or in bundles
-- Granular access control
-
-**Example Structure:**
-```
-Project: ERP System
-  ├─ Module: Financial Management
-  ├─ Module: Inventory Management
-  ├─ Module: Purchase Management
-  └─ Module: Sales Management
-
-Project: CRM System
-  ├─ Module: Contact Management
-  ├─ Module: Sales Pipeline
-  └─ Module: Marketing Automation
-
-Subscription Plan "Enterprise":
-  ├─ Includes: ERP (all modules)
-  ├─ Includes: CRM (all modules)
-  └─ Price: $499/month or $4,999/lifetime
-```
-
-### 4. **Integration Methods**
-
-**For Online Products (Always Connected):**
-```javascript
-// Check license status via REST API
-const response = await fetch(
-  'https://synflox-api.com/api/subscriptions/{id}/status'
-);
-const { isActive, expiryDate } = await response.json();
-
-if (isActive) {
-  // Allow access
-} else {
-  // Block and show message
-}
-```
-
-**For Offline Products (Air-Gapped):**
-```csharp
-// Validate encrypted license key locally
-var result = await ValidateLicenseKey(licenseKey);
-
-if (result.IsValid && !result.ClockTampered) {
-  // Allow access
-} else {
-  // Block access
-}
-```
-
-### 5. **Admin Dashboard**
-
-**Company Management:**
-- Customer database with contact info
-- Subscription history
-- License key generation
-- Bulk operations
-
-**Analytics & Reporting:**
-- Real-time dashboard with metrics
-- Active/expired/suspended subscriptions
-- Revenue tracking
-- Customer lifecycle analytics
-- Usage statistics
-
-**User Management:**
-- Role-based access (SuperAdmin, Admin)
-- Audit trails
-- Activity logs
-- Permission management
-
----
-
-## 🔒 Security & Reliability
-
-**Authentication:**
-- JWT-based secure access
-- Role-based permissions
-- Separate tokens for external systems
-
-**License Protection:**
-- AES-256 encryption for license keys
-- HMAC SHA256 signatures (tamper-proof)
-- Clock tampering detection
-- ID encryption at API boundaries
-
-**Data Protection:**
-- Soft delete (never lose data)
-- Complete audit trails
-- Encrypted database connections
-- Automatic backups
-
-**Reliability:**
-- Background jobs for automated tasks
-- Graceful failure handling
-- 99.9% uptime target
-- Scalable architecture
-
----
-
-## 🌍 Multi-Language Support
-
-**Supported Languages:**
-- **English** (left-to-right)
-- **Arabic** (right-to-left)
-
-**Full Localization:**
-- Complete UI translation
-- RTL/LTR automatic switching
-- Localized error messages
-- Cultural date/time formatting
-
-**Easy Integration:**
-```http
-GET /api/subscriptions/status
-Accept-Language: ar  # Arabic
-# or
-Accept-Language: en  # English
-```
-
----
-
-## 📊 Business Use Cases
-
-### Use Case 1: SaaS Company with Multiple Products
-
-**Before SYNFLOX:**
-- 3 products, each with own licensing
-- 3 separate codebases for license validation
-- Confused customers with multiple subscriptions
-- High development and maintenance costs
-
-**After SYNFLOX:**
-- All products check one central system
-- Customers buy one subscription
-- 70% reduction in licensing code
-- Unified customer experience
-
-**Result:** Increased revenue, reduced costs, happy customers
-
----
-
-### Use Case 2: Enterprise Software Vendor
-
-**Scenario:** Selling to large corporations who want permanent licenses
-
-**Solution with SYNFLOX:**
-- Offer Lifetime subscription plans
-- One-time payment, no recurring charges
-- Full admin control (can still suspend if needed)
-- Perfect for strategic partnerships
-
-**Benefits:**
-- Attract enterprise customers
-- Guaranteed long-term revenue
-- Differentiate from subscription-only competitors
-- Build long-term relationships
-
----
-
-### Use Case 3: Product Launch Strategy
-
-**Scenario:** Launching new product, want to capture market quickly
-
-**Strategy with SYNFLOX:**
-```
-Week 1-2: Free trial (Weekly plan)
-Week 3-4: Discounted Monthly ($19 instead of $29)
-Month 2+: Standard pricing
-Quarter 1: Offer Quarterly at 20% discount
-Year 1: Launch Yearly plan with 30% savings
-Year 2+: Introduce Lifetime plan for loyal customers
-```
-
-**Flexibility:** Change plans and pricing without touching product code
-
----
-
-## 🚀 Getting Started
-
-### Quick Setup (5 Minutes)
-
-**1. Clone Repository:**
 ```bash
-git clone <repository-url>
+# Clone repository and all submodules
+git clone --recurse-submodules https://github.com/seifmoustafa/SYNFLOX-Project.git
 cd SYNFLOX-Project
 ```
 
-**2. Start Backend:**
+**Already cloned without submodules?**
+```bash
+# Initialize and fetch submodules
+git submodule update --init --recursive
+```
+
+### **2. Start Backend**
+
 ```bash
 cd SYNFLOX
 dotnet restore
@@ -372,144 +60,283 @@ dotnet ef database update --project WebAPI
 dotnet run --project WebAPI
 ```
 
-**3. Start Frontend:**
+Backend runs at: `https://localhost:7001`
+
+### **3. Start Frontend**
+
 ```bash
-cd synflox-frontend
+cd ../synflox-frontend
 npm install
 npm run dev
 ```
 
-**4. Login:**
-- URL: `http://localhost:3000`
-- Username: `superadmin`
-- Password: `password`
+Frontend runs at: `http://localhost:3000`
 
-**5. Create Your First Plan:**
-- Go to "Subscription Plans"
-- Click "Create New Plan"
-- Choose duration, price, products
-- Done!
+### **4. Login**
+
+- **URL:** `http://localhost:3000`
+- **Username:** `superadmin`
+- **Password:** `password`
 
 ---
 
-## 💰 Pricing Models You Can Implement
+## 🔄 Working with Submodules
 
-### Model 1: Freemium
-```
-Free Plan: $0 (limited features)
-Basic Plan: $29/month
-Pro Plan: $99/month
-Enterprise: Contact for Lifetime pricing
-```
+### **Update Submodules to Latest**
 
-### Model 2: Good-Better-Best
-```
-Good: $49/month or $499/year (save 15%)
-Better: $149/month or $1,490/year (save 17%)
-Best: $499/month or $4,990/year (save 17%)
-Ultimate: $19,999 lifetime
+```bash
+# Update all submodules to their latest commits
+git submodule update --remote --merge
+
+# Or update individually
+cd SYNFLOX
+git pull origin main
+
+cd ../synflox-frontend
+git pull origin main
 ```
 
-### Model 3: Usage-Based
+### **Making Changes**
+
+**Important:** Changes must be committed in the submodule repository first, then updated in parent.
+
+```bash
+# 1. Make changes in submodule
+cd SYNFLOX
+# ... edit files ...
+git add .
+git commit -m "Your changes"
+git push origin main
+
+# 2. Update parent to track new commit
+cd ..
+git add SYNFLOX
+git commit -m "Update SYNFLOX submodule"
+git push origin main
 ```
-Starter: $19/month (up to 1,000 transactions)
-Growth: $49/month (up to 10,000 transactions)
-Scale: $199/month (up to 100,000 transactions)
-Enterprise: Custom/Lifetime
+
+### **Clone Specific Branch**
+
+```bash
+# Clone with specific branch for submodule
+git clone --recurse-submodules https://github.com/seifmoustafa/SYNFLOX-Project.git
+cd SYNFLOX-Project/SYNFLOX
+git checkout develop
+cd ..
+git add SYNFLOX
+git commit -m "Track develop branch"
 ```
-
-### Model 4: Per-User
-```
-1-10 users: $10/user/month
-11-50 users: $8/user/month
-51+ users: $6/user/month
-Unlimited: $2,999 lifetime
-```
-
-**SYNFLOX supports ALL of these models!**
-
----
-
-## 🎯 ROI Calculator
-
-**Typical software vendor with 3 products:**
-
-**Without SYNFLOX:**
-- Development: 200 hours × $100/hr × 3 products = $60,000
-- Maintenance: $2,000/month × 12 months = $24,000/year
-- Support tickets: 50/month × $10 = $6,000/year
-- **Total Year 1:** $90,000
-
-**With SYNFLOX:**
-- Setup: 40 hours × $100/hr = $4,000
-- License: $5,000/year (example)
-- Maintenance: $0 (included)
-- Support tickets: Reduced by 70% = $1,800/year
-- **Total Year 1:** $10,800
-
-**Savings Year 1:** $79,200 (88% reduction)  
-**ROI:** 733%
 
 ---
 
 ## 📚 Documentation
 
-**For Business Users:**
-- This README (business overview)
-- User Guide (coming soon)
-- Video Tutorials (coming soon)
+### **Component Documentation**
 
-**For Developers:**
-- [Backend Technical Documentation](SYNFLOX/README.md)
-- [Frontend Documentation](synflox-frontend/README.md)
-- API Documentation (Swagger UI)
+- **Backend API:** [SYNFLOX Documentation](https://github.com/seifmoustafa/SYNFLOX)
+  - .NET 8 Clean Architecture
+  - Entity Framework Core
+  - JWT Authentication
+  - Multi-language support (EN/AR)
+  
+- **Frontend App:** [synflox-frontend Documentation](https://github.com/seifmoustafa/synflox-frontend)
+  - Next.js 14 with TypeScript
+  - Clean Architecture (Domain/Services/ViewModels/Views)
+  - TailwindCSS + shadcn/ui
+  - i18n support (EN/AR with RTL)
 
-**For Integration:**
-- Integration Guide (coming soon)
-- API Reference (Swagger)
-- Code Examples (in backend docs)
+### **API Documentation**
 
----
-
-## 🤝 Support
-
-**Community Support:**
-- GitHub Issues
-- GitHub Discussions
-- Email: support@synflox.com
-
-**Enterprise Support:**
-- 24/7 Priority Support
-- Dedicated Account Manager
-- Custom Integration Assistance
-- Training & Onboarding
-- SLA Guarantees
+- Swagger UI: `https://localhost:7001/swagger`
+- API Base URL: `https://localhost:7001/api`
 
 ---
 
-## 🗺️ Roadmap
+## 🎯 What is SYNFLOX?
 
-**Q1 2025:**
-- [x] Lifetime subscription plans
-- [x] Dynamic duration types (weekly to triennial)
-- [x] Multi-product/module support
-- [ ] Advanced analytics dashboard
-- [ ] Webhook notifications
-- [ ] Customer self-service portal
+**SYNFLOX** is a Central Licensing System designed for software vendors who sell multiple enterprise products (ERP, CRM, POS, HR systems, etc.). Instead of each product managing its own licenses, SYNFLOX provides one unified system to control all product licenses from a single dashboard.
 
-**Q2 2025:**
-- [ ] Usage-based billing
-- [ ] Automated invoice generation
-- [ ] Payment gateway integration
-- [ ] Mobile admin app
-- [ ] Advanced reporting
+### **Key Features**
 
-**Q3-Q4 2025:**
-- [ ] AI-powered renewal predictions
-- [ ] Automated churn prevention
-- [ ] White-label branding
-- [ ] Reseller management
-- [ ] API marketplace
+✅ **Flexible Subscription Plans** - Weekly, Monthly, Quarterly, Yearly, Lifetime  
+✅ **Multi-Product Support** - Manage licenses for unlimited products  
+✅ **License Key Generation** - Offline validation with encrypted keys  
+✅ **JWT Authentication** - Secure admin access with role-based permissions  
+✅ **Multi-Language** - English and Arabic with RTL support  
+✅ **Real-time Dashboard** - Analytics and system metrics  
+✅ **Clean Architecture** - Maintainable and scalable codebase  
+✅ **ID Encryption** - Secure all entity IDs at API boundaries  
+✅ **Soft Delete & Audit** - Complete data history and audit trails  
+
+---
+
+## 🛠️ Technology Stack
+
+### **Backend (SYNFLOX)**
+- .NET 8.0
+- Entity Framework Core 8.0
+- SQL Server / Oracle
+- AutoMapper
+- FluentValidation
+- Swagger/OpenAPI
+- JWT Authentication
+
+### **Frontend (synflox-frontend)**
+- Next.js 14 (App Router)
+- TypeScript
+- TailwindCSS
+- shadcn/ui Components
+- Lucide Icons
+- next-intl (i18n)
+- Axios
+
+---
+
+## 🌍 Multi-Language Support
+
+Both backend and frontend support:
+- **English (EN)** - Left-to-right
+- **Arabic (AR)** - Right-to-left with full RTL UI
+
+Language can be changed via:
+- `Accept-Language` header
+- `X-Language` header  
+- `?lang=en` or `?lang=ar` query parameter
+
+---
+
+## 🔒 Security Features
+
+- **JWT Authentication** - Secure token-based auth
+- **Role-Based Authorization** - SuperAdmin and Admin roles
+- **ID Encryption** - All IDs encrypted at API boundaries (AutoMapper converters)
+- **Password Hashing** - Secure password storage
+- **License Key Encryption** - AES-256 + HMAC SHA256
+- **Clock Tampering Detection** - For offline license validation
+- **Audit Trails** - Complete change history
+- **Soft Delete** - Never lose data
+
+---
+
+## 📦 Project Architecture
+
+### **Backend: Clean Architecture**
+
+```
+Domain Layer (Core Business Logic)
+    ↑
+Application Layer (Use Cases & DTOs)
+    ↑
+Infrastructure Layer (Database & External Services)
+    ↑
+WebAPI Layer (Controllers & Middleware)
+```
+
+### **Frontend: Clean Architecture**
+
+```
+Domain Models (Business Entities)
+    ↑
+Mappers (Data Transformation)
+    ↑
+Services (API Communication)
+    ↑
+ViewModels (Business Logic & State)
+    ↑
+Views (UI Components)
+    ↑
+Pages (Next.js Routes)
+```
+
+---
+
+## 🤝 Contributing
+
+### **Development Workflow**
+
+1. **Fork** the submodule repository you want to work on
+2. **Create** a feature branch
+3. **Make** your changes
+4. **Test** thoroughly
+5. **Commit** with clear messages
+6. **Push** to your fork
+7. **Create** a Pull Request
+
+### **Important Rules**
+
+- Follow existing code style and architecture
+- Maintain Clean Architecture principles
+- Add tests for new features
+- Update documentation
+- Never commit directly to `main` branch
+
+---
+
+## 📊 Submodule Information
+
+### **.gitmodules Configuration**
+
+```ini
+[submodule "SYNFLOX"]
+    path = SYNFLOX
+    url = https://github.com/seifmoustafa/SYNFLOX.git
+    
+[submodule "synflox-frontend"]
+    path = synflox-frontend
+    url = https://github.com/seifmoustafa/synflox-frontend.git
+```
+
+### **Useful Git Submodule Commands**
+
+```bash
+# Check submodule status
+git submodule status
+
+# Update all submodules
+git submodule update --remote
+
+# Fetch changes from submodules
+git submodule foreach git fetch
+
+# Pull changes in all submodules
+git submodule foreach git pull origin main
+
+# Clone and update submodules in one command
+git clone --recurse-submodules --remote-submodules <repo-url>
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### **Submodule folder is empty**
+```bash
+git submodule update --init --recursive
+```
+
+### **Submodule shows modified but no changes**
+```bash
+# This happens when submodule is on different commit
+cd SYNFLOX
+git status  # Check what changed
+git checkout main  # Or reset to tracked commit
+```
+
+### **Can't pull latest changes**
+```bash
+# Update submodules first
+git submodule update --remote --merge
+git add .
+git commit -m "Update submodules"
+```
+
+---
+
+## 📞 Support
+
+- **Issues:** Use GitHub Issues in respective repositories
+- **Discussions:** GitHub Discussions
+- **Email:** support@synflox.com
 
 ---
 
@@ -521,14 +348,13 @@ Enterprise License - See LICENSE file for details.
 
 <div align="center">
 
-**SYNFLOX** - Simplifying Software License Management
+**SYNFLOX Project** - Monorepo Structure
 
-*Stop building licensing. Start building products.*
+*Backend and Frontend working together seamlessly*
 
-[![Website](https://img.shields.io/badge/Website-synflox.com-blue)](https://synflox.com)
-[![Docs](https://img.shields.io/badge/Docs-docs.synflox.com-green)](https://docs.synflox.com)
-[![Email](https://img.shields.io/badge/Email-support@synflox.com-red)](mailto:support@synflox.com)
+[![Backend](https://img.shields.io/badge/Backend-SYNFLOX-blue)](https://github.com/seifmoustafa/SYNFLOX)
+[![Frontend](https://img.shields.io/badge/Frontend-synflox--frontend-green)](https://github.com/seifmoustafa/synflox-frontend)
 
-**Version 2.0** | **November 2025**
+**Version 2.0** | **November 2024**
 
 </div>
