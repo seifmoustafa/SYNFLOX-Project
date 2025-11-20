@@ -23,7 +23,7 @@ This is a **monorepo** that organizes the SYNFLOX project using Git submodules. 
 | Component | Repository | Description |
 |-----------|-----------|-------------|
 | **Backend** | [SYNFLOX](https://github.com/seifmoustafa/SYNFLOX) | .NET 8 Clean Architecture API |
-| **Frontend** | [synflox-frontend](https://github.com/seifmoustafa/synflox-frontend) | Next.js 14 TypeScript Application |
+| **Frontend** | [synflox-frontend](https://github.com/seifmoustafa/synflox-frontend) | Next.js 16 TypeScript Application |
 
 ```
 SYNFLOX-Project/
