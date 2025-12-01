@@ -1,611 +1,720 @@
 ---
-description: Enterprise Entitlement System - Complete Implementation Workflow
+description: Enterprise Entitlement System v2.0 - Plan-Level Access Control
 auto_execution_mode: 3
 ---
 
-# 🏢 SYNFLOX Enterprise Entitlement System
+# 🏢 SYNFLOX Enterprise Entitlement System v2.0
+
+## 📋 Executive Summary
+
+**Core Principle**: Access control is defined at the **PLAN level**, not subscription level.
+All subscriptions of the same plan have IDENTICAL access rights.
+
+### Key Changes from v1:
+- ❌ REMOVE `SubscriptionEntitlement` entity (wrong design)
+- ✅ ADD `PlanEntitlement` entity (correct design)
+- ✅ All access defined on Plan, inherited by all subscribers
+- ✅ Plan changes can be scheduled for next billing cycle
+- ✅ Email notifications for plan changes
+
+---
 
 ## 📊 Progress Tracker
 
-**Current Phase:** Phase 9 - Frontend Domain  
-**Current Step:** Step 9.1 - Models & Mappers  
-**Last Updated:** November 30, 2025 - 9:00 PM
+**Current Phase:** Phase 2 - Create PlanEntitlement Entity
+**Status:** Phase 1 Complete, Ready for Phase 2
+**Last Updated:** December 1, 2025 - 9:07 PM
 
-### Phase Status
-- [x] **Phase 1:** Domain Layer (Enums & Entities) ✅ COMPLETE
-- [x] **Phase 2:** Infrastructure Data Layer (EF Config, Repository, Migration) ✅ COMPLETE
-- [x] **Phase 3:** Application Layer (DTOs & Interfaces) ✅ COMPLETE
-- [x] **Phase 4:** Core Services (EntitlementService) ✅ COMPLETE
-- [x] **Phase 5:** Token Architecture (Thin Token + Versioned Entitlements) ✅ COMPLETE
-- [x] **Phase 6:** Offline License System ✅ COMPLETE
-- [x] **Phase 7:** Background Jobs (Access Mode Transitions) ✅ COMPLETE
-- [x] **Phase 8:** API Layer (Controllers) ✅ COMPLETE
-- [ ] **Phase 9:** Frontend Domain (Models, Mappers, Services) ⬅️ NEXT
-- [ ] **Phase 10:** Frontend UI (Components)
-- [ ] **Phase 11:** Testing & Documentation
+### Implementation Phases
+- [x] **Phase 1:** Remove Old Entitlement System ✅ COMPLETE
+- [ ] **Phase 2:** Create PlanEntitlement Entity ⬅️ NEXT
+- [ ] **Phase 3:** Plan Change Scheduling System
+- [ ] **Phase 4:** Email Notification System
+- [ ] **Phase 5:** Client API Updates
+- [ ] **Phase 6:** Frontend - Plan Entitlements Management
+- [ ] **Phase 7:** Frontend - Subscription Access View (Read-Only)
+- [ ] **Phase 8:** Testing & Migration
+
+### Phase 1 Completed Items
+- ✅ Removed `SubscriptionEntitlement` entity
+- ✅ Removed `ISubscriptionEntitlementRepository` interface
+- ✅ Removed `SubscriptionEntitlementRepository` implementation
+- ✅ Removed `SubscriptionEntitlementConfiguration` EF config
+- ✅ Removed `IEntitlementService` interface
+- ✅ Removed `EntitlementService` implementation
+- ✅ Removed `EntitlementsController`
+- ✅ Removed all Entitlement DTOs (17 files)
+- ✅ Removed `EntitlementMappingProfile`
+- ✅ Updated `Subscription` entity (removed Entitlements nav property)
+- ✅ Updated `SubscriptionPlan` entity (added EntitlementVersion)
+- ✅ Updated `LicenseService` to use plan-based entitlements
+- ✅ Updated `ClientApiService` to use plan-based entitlements
+- ✅ Updated `AccessModeTransitionJob` to use plan-based versioning
+- ✅ Updated `EntitlementsVersionHeaderMiddleware`
+- ✅ Updated `ClientApiController`
+- ✅ Removed frontend entitlement files (model, mapper, service, viewmodel, view)
+- ✅ Removed frontend entitlements page
+- ✅ Cleaned up service provider and exports
+- ✅ Backend builds successfully (0 errors)
+- ✅ Frontend builds successfully
 
 ---
 
-## 🏗️ ARCHITECTURE DECISIONS
+## 🏗️ ARCHITECTURE v2.0
 
-### Online Systems: Thin Token + Dynamic Authorization
+### The Correct Flow
 ```
-Token (JWT):
-├── company_id
-├── subscription_id  
-├── token_id
-├── token_version
-├── exp, iat
-└── NO entitlements (fetched separately)
-
-Entitlements:
-├── Fetched via GET /api/client/entitlements
-├── Cached by client (24 hours or until version change)
-├── Version tracked via X-Entitlements-Version header
-└── Changes instantly without token regeneration
-```
-
-### Offline Systems: Self-Contained License
-```
-License Key (Encrypted):
-├── company_id, subscription_id
-├── FULL entitlement matrix
-├── access_mode
-├── expiry dates (expiry, grace_end, export_deadline)
-├── version number
-└── cryptographic signature
-```
-
-### Background Job Purpose
-```
-AccessModeTransitionJob (Runs every hour):
-├── Check subscriptions where ExpiryDateUtc < now
-├── Transition: Active → GracePeriod
-├── Transition: GracePeriod → ExportOnly/ReadOnly  
-├── Transition: ExportOnly → Blocked
-├── Increment entitlements_version on change
-└── NOT for checking client access (that's DB-driven)
-```
-
-### Caching Strategy
-```
-Server-side:
-├── Cache entitlement matrix per subscription
-├── Invalidate on: grant, revoke, upgrade, access mode change
-├── Version incremented on any change
-
-Client-side:
-├── Cache entitlements for 24 hours (server time)
-├── Check X-Entitlements-Version on every response
-├── Refresh if version mismatch
-├── Clear cache on upgrade/token refresh
+┌─────────────────────────────────────────────────────────────────┐
+│                      PLAN DEFINITION                             │
+│  "Pro Plan" includes:                                            │
+│    ├── ERP Project → Full Access (CRUD + Export)                │
+│    ├── HR Module → Read Only (Read + Export)                    │
+│    └── Reports → Full Access                                     │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      SUBSCRIPTIONS                               │
+│  Company A ──► Pro Plan ──┐                                     │
+│  Company B ──► Pro Plan ──┼──► ALL get SAME access!            │
+│  Company C ──► Pro Plan ──┘                                     │
+│  Company D ──► Basic Plan ──► Gets Basic Plan access            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      CLIENT API                                  │
+│  GET /api/client/entitlements                                   │
+│  Returns: Plan's entitlements (not subscription-specific!)      │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-## 📋 IMPLEMENTATION PHASES
-
----
-
-### PHASE 1: Domain Layer
-**Status:** ⬜ Not Started  
-**Estimated:** Day 1-2
-
-#### Step 1.1: Create Enums
-- [ ] `Domain/Enums/EntitlementGrantType.cs`
-- [ ] `Domain/Enums/EntitlementSource.cs`
-- [ ] `Domain/Enums/EntitlementAccessLevel.cs`
-- [ ] `Domain/Enums/SubscriptionAccessMode.cs`
-
-#### Step 1.2: Create SubscriptionEntitlement Entity
-- [ ] `Domain/Entities/Subscriptions/SubscriptionEntitlement.cs`
-
-#### Step 1.3: Update Subscription Entity
-- [ ] Add `AccessMode` property
-- [ ] Add `FallbackPlanId` property
-- [ ] Add `ExportDeadlineUtc` property
-- [ ] Add `EntitlementsVersion` property (NEW - for versioning)
-- [ ] Add `Entitlements` navigation
-
-#### Step 1.4: Update SubscriptionPlan Entity
-- [ ] Add `IsFreeTier` property
-- [ ] Add `FallbackAccessMode` property
-- [ ] Add `ExportGraceDays` property
-- [ ] Add `DefaultFallbackPlanId` property
-
-#### Step 1.5: Create Repository Interface
-- [ ] `Domain/Interfaces/ISubscriptionEntitlementRepository.cs`
+### Why This is Correct
+| Old Design (WRONG) | New Design (CORRECT) |
+|-------------------|----------------------|
+| Each subscription has own entitlements | All same-plan subscriptions = same access |
+| Admin grants per subscription | Admin defines per plan |
+| Security risk (can grant anything) | Controlled by plan definition |
+| Complex upgrade/fallback | Simple: just change planId |
+| Manual work for each subscriber | Define once, apply to all |
 
 ---
 
-### PHASE 2: Infrastructure Data Layer
-**Status:** ⬜ Not Started  
-**Estimated:** Day 3-4
+## 📦 PHASE 1: Remove Old Entitlement System
 
-#### Step 2.1: EF Configurations
-- [ ] `Infrastructure/Configurations/SubscriptionEntitlementConfiguration.cs`
-- [ ] Update `SubscriptionConfiguration.cs`
-- [ ] Update `SubscriptionPlanConfiguration.cs`
-- [ ] Update `ApplicationDBContext.cs`
+### 1.1 Entities to REMOVE/DEPRECATE
+```
+Domain/Entities/Entitlement/
+├── SubscriptionEntitlement.cs  ──► DELETE
+└── EntitlementMatrix.cs        ──► DELETE (will be calculated from plan)
+```
 
-#### Step 2.2: Repository Implementation
-- [ ] `Infrastructure/Repositories/SubscriptionEntitlementRepository.cs`
+### 1.2 Services to REMOVE/REFACTOR
+```
+Application/Services/
+├── IEntitlementService.cs      ──► MAJOR REFACTOR (plan-based)
 
-#### Step 2.3: Database Migration
-- [ ] Create migration file
-- [ ] Add SubscriptionEntitlements table
-- [ ] Alter Subscriptions table
-- [ ] Alter SubscriptionPlans table
-- [ ] Create migration script for existing data
+Infrastructure/Services/
+├── EntitlementService.cs       ──► MAJOR REFACTOR
+```
 
----
+### 1.3 DTOs to REMOVE
+```
+Application/DTOs/Entitlements/
+├── SubscriptionEntitlementDto.cs   ──► DELETE
+├── CreateEntitlementRequest.cs     ──► DELETE
+├── UpdateEntitlementRequest.cs     ──► DELETE
+├── GrantEntitlementRequest.cs      ──► DELETE
+├── RevokeEntitlementRequest.cs     ──► DELETE
+└── ... (most subscription-specific DTOs)
+```
 
-### PHASE 3: Application Layer
-**Status:** ⬜ Not Started  
-**Estimated:** Day 5
-
-#### Step 3.1: Entitlement DTOs
-- [ ] `Application/DTOs/Entitlements/SubscriptionEntitlementDto.cs`
-- [ ] `Application/DTOs/Entitlements/GrantEntitlementRequest.cs`
-- [ ] `Application/DTOs/Entitlements/UpdateEntitlementRequest.cs`
-- [ ] `Application/DTOs/Entitlements/RevokeEntitlementRequest.cs`
-
-#### Step 3.2: Access Control DTOs
-- [ ] `Application/DTOs/Entitlements/AccessCheckRequest.cs`
-- [ ] `Application/DTOs/Entitlements/AccessCheckResult.cs`
-- [ ] `Application/DTOs/Entitlements/EntitlementMatrixDto.cs`
-- [ ] `Application/DTOs/Entitlements/ProjectEntitlementDto.cs`
-- [ ] `Application/DTOs/Entitlements/ModuleEntitlementDto.cs`
-
-#### Step 3.3: Update Existing DTOs
-- [ ] Update `SubscriptionDto.cs` - Add access mode fields
-- [ ] Update `SubscriptionDetailsDto.cs` - Add entitlements
-- [ ] Update Plan DTOs - Add free tier fields
-
-#### Step 3.4: Service Interface
-- [ ] `Application/Services/IEntitlementService.cs`
+### 1.4 Frontend to REMOVE
+```
+synflox-frontend/
+├── views/entitlement-detail-view.tsx      ──► REPLACE with read-only view
+├── viewmodels/entitlement-viewmodel.ts    ──► DELETE
+├── domain/models/entitlement.model.ts     ──► REFACTOR for plan entitlements
+└── services/entitlement.service.ts        ──► DELETE
+```
 
 ---
 
-### PHASE 4: Core Services
-**Status:** ⬜ Not Started  
-**Estimated:** Day 6-8
+## 📦 PHASE 2: Create PlanEntitlement Entity
 
-#### Step 4.1: EntitlementService - CRUD
-- [ ] Create `Infrastructure/Services/EntitlementService.cs`
-- [ ] `GetSubscriptionEntitlementsAsync`
-- [ ] `GetEntitlementByIdAsync`
-- [ ] `GrantEntitlementAsync` (increments version)
-- [ ] `UpdateEntitlementAsync` (increments version)
-- [ ] `RevokeEntitlementAsync` (increments version)
+### 2.1 New Entity: PlanEntitlement
+```csharp
+// Domain/Entities/Plans/PlanEntitlement.cs
+public class PlanEntitlement : AuditEntity<Guid>
+{
+    // ═══════════════════════════════════════════
+    // RELATIONSHIPS
+    // ═══════════════════════════════════════════
+    public Guid PlanId { get; set; }
+    public virtual SubscriptionPlan Plan { get; set; } = null!;
+    
+    // Target: Project OR Module (one must be set)
+    public Guid? ProjectId { get; set; }
+    public virtual Project? Project { get; set; }
+    
+    public Guid? ModuleId { get; set; }
+    public virtual Module? Module { get; set; }
+    
+    // ═══════════════════════════════════════════
+    // ACCESS CONFIGURATION
+    // ═══════════════════════════════════════════
+    public EntitlementAccessLevel AccessLevel { get; set; } = EntitlementAccessLevel.Full;
+    
+    // CRUD Permissions
+    public bool CanCreate { get; set; } = true;
+    public bool CanRead { get; set; } = true;
+    public bool CanUpdate { get; set; } = true;
+    public bool CanDelete { get; set; } = true;
+    public bool CanExport { get; set; } = true;
+    
+    // UI
+    public bool DisplayInMenu { get; set; } = true;
+    
+    // ═══════════════════════════════════════════
+    // COMPUTED
+    // ═══════════════════════════════════════════
+    public string TargetType => ProjectId.HasValue ? "Project" : "Module";
+    public string TargetName => Project?.Name ?? Module?.Name ?? "Unknown";
+}
+```
 
-#### Step 4.2: EntitlementService - Bulk Operations
-- [ ] `CopyPlanEntitlementsToSubscriptionAsync`
-- [ ] `AddUpgradeEntitlementsAsync`
-- [ ] `ReplaceEntitlementsAsync`
-- [ ] `DowngradeToFallbackAsync`
+### 2.2 Update SubscriptionPlan Entity
+```csharp
+// Add to SubscriptionPlan.cs
+public virtual ICollection<PlanEntitlement> Entitlements { get; set; } = new List<PlanEntitlement>();
 
-#### Step 4.3: EntitlementService - Access Checking
-- [ ] `CheckProjectAccessAsync`
-- [ ] `CheckModuleAccessAsync`
-- [ ] `CheckFeatureAccessAsync`
-- [ ] `CheckOperationAsync`
-- [ ] `BuildEntitlementMatrixAsync`
+// Entitlement Version (increments when entitlements change)
+public int EntitlementVersion { get; set; } = 1;
+```
 
-#### Step 4.4: EntitlementService - Versioning
-- [ ] `GetEntitlementsVersionAsync`
-- [ ] `IncrementVersionAsync` (called on any change)
+### 2.3 AccessLevel Enum (Keep existing)
+```csharp
+public enum EntitlementAccessLevel
+{
+    Full = 1,        // Full CRUD access
+    ReadOnly = 2,    // Can only read/view
+    ExportOnly = 3,  // Can only export data
+    Blocked = 4      // No access (hidden)
+}
+```
 
-#### Step 4.5: Register Service
-- [ ] Register in DI container
-
----
-
-### PHASE 5: Token Architecture (Online)
-**Status:** ⬜ Not Started  
-**Estimated:** Day 9-10
-
-#### Step 5.1: Redesign ClientJwtService
-- [ ] Remove entitlements from token claims
-- [ ] Keep only: company_id, subscription_id, token_id, version
-- [ ] Add entitlements_version claim (for client to compare)
-
-#### Step 5.2: Create EntitlementsEndpoint
-- [ ] `GET /api/client/entitlements` - Returns full matrix
-- [ ] Returns: version, access_mode, projects, modules, usage_limits
-- [ ] Cached server-side per subscription
-
-#### Step 5.3: Add Version Header to All Responses
-- [ ] Create middleware/filter
-- [ ] Add `X-Entitlements-Version` header to all client API responses
-- [ ] Client compares to cached version
-
-#### Step 5.4: Update Token Generation
-- [ ] Don't regenerate token on entitlement change
-- [ ] Only regenerate on: expiry, revocation, security concern
-
----
-
-### PHASE 6: Offline License System
-**Status:** ⬜ Not Started  
-**Estimated:** Day 11-12
-
-#### Step 6.1: Update OfflineLicenseData Structure
-- [ ] Add `EntitlementMatrix`
-- [ ] Add `AccessMode`
-- [ ] Add `GraceEndDateUtc`
-- [ ] Add `ExportDeadlineUtc`
-- [ ] Add `Version` (bump to 3)
-
-#### Step 6.2: Update LicenseService
-- [ ] `GenerateOfflineLicenseKeyAsync` - Include full entitlements
-- [ ] `ValidateOfflineLicenseKey` - Validate entitlements
-
-#### Step 6.3: License Sync Endpoint
-- [ ] `POST /api/client/license/sync`
-- [ ] Request: current_version
-- [ ] Response: new_license_key if changed, or up_to_date flag
-
-#### Step 6.4: Backward Compatibility
-- [ ] Handle v1 and v2 licenses
-- [ ] Graceful upgrade path
-
----
-
-### PHASE 7: Background Jobs
-**Status:** ⬜ Not Started  
-**Estimated:** Day 12-13
-
-#### Step 7.1: AccessModeTransitionJob
-- [ ] Create `Infrastructure/BackgroundJobs/AccessModeTransitionJob.cs`
-- [ ] Run every hour
-- [ ] Check for expiring subscriptions
-- [ ] Transition access modes
-- [ ] Increment entitlements_version on transition
-- [ ] Log all transitions
-
-#### Step 7.2: EntitlementsCacheCleanupJob
-- [ ] Create cleanup job for stale cache entries
-- [ ] Run daily
-
-#### Step 7.3: Register Jobs
-- [ ] Register with Hangfire/Quartz
-- [ ] Configure schedules
-
----
-
-### PHASE 8: API Layer
-**Status:** ⬜ Not Started  
-**Estimated:** Day 13-14
-
-#### Step 8.1: EntitlementsController (Admin)
-- [ ] Create `WebAPI/Controllers/EntitlementsController.cs`
-- [ ] `GET /api/subscriptions/{id}/entitlements`
-- [ ] `POST /api/subscriptions/{id}/entitlements`
-- [ ] `PUT /api/entitlements/{id}`
-- [ ] `DELETE /api/entitlements/{id}`
-
-#### Step 8.2: Update ClientApiController
-- [ ] Add `GET /api/client/entitlements`
-- [ ] Add `POST /api/client/access/check`
-- [ ] Add version header middleware
-
-#### Step 8.3: Update Existing Controllers
-- [ ] SubscriptionsController - Include entitlements in details
-- [ ] PlansController - Add free tier configuration
-
-#### Step 8.4: AutoMapper Profiles
-- [ ] Create `EntitlementMappingProfile.cs`
-- [ ] Update existing profiles
+### 2.4 EF Configuration
+```csharp
+// Infrastructure/Configuration/PlanEntitlementConfiguration.cs
+public class PlanEntitlementConfiguration : IEntityTypeConfiguration<PlanEntitlement>
+{
+    public void Configure(EntityTypeBuilder<PlanEntitlement> builder)
+    {
+        builder.ToTable("PlanEntitlements");
+        
+        builder.HasKey(e => e.Id);
+        
+        // Plan relationship
+        builder.HasOne(e => e.Plan)
+            .WithMany(p => p.Entitlements)
+            .HasForeignKey(e => e.PlanId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        // Project relationship (optional)
+        builder.HasOne(e => e.Project)
+            .WithMany()
+            .HasForeignKey(e => e.ProjectId)
+            .OnDelete(DeleteBehavior.SetNull);
+        
+        // Module relationship (optional)
+        builder.HasOne(e => e.Module)
+            .WithMany()
+            .HasForeignKey(e => e.ModuleId)
+            .OnDelete(DeleteBehavior.SetNull);
+        
+        // Indexes
+        builder.HasIndex(e => e.PlanId);
+        builder.HasIndex(e => new { e.PlanId, e.ProjectId, e.ModuleId }).IsUnique();
+        
+        // Check constraint: must have Project OR Module (not both, not neither)
+        builder.ToTable(t => t.HasCheckConstraint(
+            "CK_PlanEntitlement_Target",
+            "(ProjectId IS NOT NULL AND ModuleId IS NULL) OR (ProjectId IS NULL AND ModuleId IS NOT NULL)"
+        ));
+    }
+}
+```
 
 ---
 
-### PHASE 9: Frontend Domain
-**Status:** ⬜ Not Started  
-**Estimated:** Day 15
+## 📦 PHASE 3: Plan Change Scheduling System
 
-#### Step 9.1: Models
-- [ ] `domain/models/entitlement.model.ts`
-- [ ] `domain/models/access-check.model.ts`
-- [ ] Update `subscription.model.ts`
-- [ ] Update `subscription-plan.model.ts`
+### 3.1 New Entity: PlanChangeSchedule
+```csharp
+// Domain/Entities/Plans/PlanChangeSchedule.cs
+public class PlanChangeSchedule : AuditEntity<Guid>
+{
+    public Guid PlanId { get; set; }
+    public virtual SubscriptionPlan Plan { get; set; } = null!;
+    
+    // What changed
+    public PlanChangeType ChangeType { get; set; }
+    public string ChangeDescription { get; set; } = string.Empty;
+    public string ChangedFieldsJson { get; set; } = "{}"; // JSON of changed fields
+    
+    // When to apply
+    public bool ApplyImmediately { get; set; } = false;
+    public DateTime? ScheduledForUtc { get; set; } // If not immediate
+    
+    // Status
+    public PlanChangeStatus Status { get; set; } = PlanChangeStatus.Pending;
+    public DateTime? AppliedAtUtc { get; set; }
+    
+    // Notification
+    public bool NotifySubscribers { get; set; } = true;
+    public bool NotificationSent { get; set; } = false;
+    public DateTime? NotificationSentAtUtc { get; set; }
+}
 
-#### Step 9.2: Mappers
-- [ ] `domain/mappers/entitlement.mapper.ts`
+public enum PlanChangeType
+{
+    PriceChange = 1,
+    EntitlementAdded = 2,
+    EntitlementRemoved = 3,
+    EntitlementModified = 4,
+    FeaturesChanged = 5,
+    DurationChanged = 6
+}
 
-#### Step 9.3: Service
-- [ ] `services/entitlement.service.ts`
+public enum PlanChangeStatus
+{
+    Pending = 1,
+    Applied = 2,
+    Cancelled = 3
+}
+```
 
-#### Step 9.4: Config Updates
-- [ ] `config/api-endpoints.ts`
-- [ ] `providers/service-provider.tsx`
+### 3.2 Plan Update Service
+```csharp
+public interface IPlanUpdateService
+{
+    // Update plan with scheduling option
+    Task<PlanChangeSchedule> UpdatePlanAsync(
+        Guid planId, 
+        UpdatePlanRequest request,
+        bool applyImmediately = false,
+        bool notifySubscribers = true);
+    
+    // Get pending changes for a plan
+    Task<List<PlanChangeSchedule>> GetPendingChangesAsync(Guid planId);
+    
+    // Cancel a pending change
+    Task CancelPendingChangeAsync(Guid changeId);
+    
+    // Apply pending changes (called by background job)
+    Task ApplyPendingChangesAsync();
+}
+```
+
+### 3.3 Background Job: ApplyPlanChangesJob
+```csharp
+// Runs hourly
+public class ApplyPlanChangesJob : IJob
+{
+    public async Task Execute()
+    {
+        // Find all pending changes where ScheduledForUtc <= now
+        var pendingChanges = await GetPendingChanges();
+        
+        foreach (var change in pendingChanges)
+        {
+            // Apply the change
+            await ApplyChange(change);
+            
+            // Send notification emails if requested
+            if (change.NotifySubscribers && !change.NotificationSent)
+            {
+                await SendNotifications(change);
+            }
+        }
+    }
+}
+```
 
 ---
 
-### PHASE 10: Frontend UI
-**Status:** ⬜ Not Started  
-**Estimated:** Day 16-17
+## 📦 PHASE 4: Email Notification System
 
-#### Step 10.1: Entitlement Management Components
-- [ ] `components/entitlements/entitlement-list.tsx`
-- [ ] `components/entitlements/grant-entitlement-dialog.tsx`
-- [ ] `components/entitlements/edit-entitlement-dialog.tsx`
-- [ ] `components/entitlements/revoke-entitlement-dialog.tsx`
+### 4.1 Notification Events
+```csharp
+public interface IPlanNotificationService
+{
+    // Notify all subscribers of a plan about changes
+    Task NotifyPlanChangeAsync(Guid planId, PlanChangeNotification notification);
+    
+    // Notify specific subscription about access change
+    Task NotifyAccessChangeAsync(Guid subscriptionId, AccessChangeNotification notification);
+}
 
-#### Step 10.2: Access Mode Components
-- [ ] `components/access/access-mode-badge.tsx`
-- [ ] `components/access/access-mode-banner.tsx`
-- [ ] `components/access/upgrade-prompt.tsx`
+public class PlanChangeNotification
+{
+    public string ChangeType { get; set; } // "Price", "Features", "Access"
+    public string ChangeDescription { get; set; }
+    public DateTime EffectiveDate { get; set; }
+    public Dictionary<string, object> OldValues { get; set; }
+    public Dictionary<string, object> NewValues { get; set; }
+}
+```
 
-#### Step 10.3: Plan Configuration
-- [ ] Update plan forms with free tier options
-- [ ] Fallback plan selector
-
-#### Step 10.4: Subscription Details
-- [ ] Add Entitlements tab
-- [ ] Show access mode status
-- [ ] Show version info
-
----
-
-### PHASE 11: Testing & Documentation
-**Status:** ⬜ Not Started  
-**Estimated:** Day 17-18
-
-#### Step 11.1: Backend Testing
-- [ ] Entitlement CRUD operations
-- [ ] Access mode transitions
-- [ ] Token versioning
-- [ ] License generation/validation
-- [ ] Access check endpoint
-
-#### Step 11.2: Frontend Testing
-- [ ] Entitlement management UI
-- [ ] Access mode display
-- [ ] Plan configuration
-
-#### Step 11.3: Integration Testing
-- [ ] Full upgrade flow
-- [ ] Full expiry → fallback flow
-- [ ] Offline license sync
-
-#### Step 11.4: Documentation
-- [ ] API documentation
-- [ ] Client SDK guide
-- [ ] Architecture documentation
-
-#### Step 11.5: Translations
-- [ ] `locales/en.ts` additions
-- [ ] `locales/ar.ts` additions
+### 4.2 Email Templates
+```
+Templates/Emails/
+├── PlanPriceChange.html        ──► "Your subscription price will change"
+├── PlanFeaturesAdded.html      ──► "New features added to your plan!"
+├── PlanFeaturesRemoved.html    ──► "Some features will be removed"
+├── PlanAccessChange.html       ──► "Your access level has changed"
+└── PlanUpgradeAvailable.html   ──► "Upgrade to get more features"
+```
 
 ---
 
-## 🔧 TECHNICAL SPECIFICATIONS
+## 📦 PHASE 5: Client API Updates
 
-### New Database Schema
+### 5.1 Updated Entitlements Endpoint
+```csharp
+// GET /api/client/entitlements
+// Returns the PLAN's entitlements for this subscription
+public async Task<ActionResult<ClientEntitlementMatrixDto>> GetEntitlements()
+{
+    var subscription = await GetCurrentSubscription();
+    var plan = await _planService.GetByIdAsync(subscription.PlanId);
+    
+    return new ClientEntitlementMatrixDto
+    {
+        Version = plan.EntitlementVersion,
+        AccessMode = subscription.AccessMode,
+        DaysRemaining = subscription.DaysRemaining,
+        IsInGracePeriod = subscription.IsInGracePeriod,
+        
+        // Entitlements come from PLAN, not subscription
+        Projects = plan.Entitlements
+            .Where(e => e.ProjectId.HasValue)
+            .Select(MapToProjectAccess),
+            
+        Modules = plan.Entitlements
+            .Where(e => e.ModuleId.HasValue)
+            .Select(MapToModuleAccess)
+    };
+}
+```
 
+### 5.2 Version Checking
+```csharp
+// Client sends: X-Entitlements-Version: 5
+// Server checks: Plan.EntitlementVersion = 7
+// Response: Full entitlement matrix (version changed)
+
+// Client sends: X-Entitlements-Version: 7
+// Server checks: Plan.EntitlementVersion = 7
+// Response: 304 Not Modified (use cached version)
+```
+
+### 5.3 Status Endpoint (Already exists - minor update)
+```csharp
+// GET /api/client/status
+// Returns subscription status WITH plan access info
+public async Task<ActionResult<ClientStatusDto>> GetStatus()
+{
+    var subscription = await GetCurrentSubscription();
+    var plan = await _planService.GetByIdAsync(subscription.PlanId);
+    
+    return new ClientStatusDto
+    {
+        IsValid = subscription.IsActive && !subscription.IsExpired,
+        SubscriptionStatus = subscription.Status,
+        PlanName = plan.Name,
+        ExpiresAt = subscription.ExpiryDateUtc,
+        DaysRemaining = subscription.DaysRemaining,
+        AccessMode = subscription.AccessMode,
+        
+        // Summary of access
+        TotalProjects = plan.Entitlements.Count(e => e.ProjectId.HasValue),
+        TotalModules = plan.Entitlements.Count(e => e.ModuleId.HasValue),
+        
+        // Version for cache checking
+        EntitlementVersion = plan.EntitlementVersion
+    };
+}
+```
+
+---
+
+## 📦 PHASE 6: Frontend - Plan Entitlements Management
+
+### 6.1 Plan Detail Page - New "Entitlements" Tab
+```
+/plans/[id]
+├── Overview Tab (existing)
+├── Pricing Tab (existing)  
+├── Entitlements Tab (NEW) ◄── Define what this plan can access
+└── Subscribers Tab (existing)
+```
+
+### 6.2 Entitlements Tab UI
+```tsx
+// Plan Entitlements Management
+<Card>
+  <CardHeader>
+    <CardTitle>Plan Entitlements</CardTitle>
+    <CardDescription>
+      Define which projects and modules subscribers of this plan can access
+    </CardDescription>
+    <Button onClick={addEntitlement}>+ Add Entitlement</Button>
+  </CardHeader>
+  
+  <CardContent>
+    {/* List of entitlements */}
+    {plan.entitlements.map(ent => (
+      <EntitlementRow 
+        key={ent.id}
+        target={ent.projectName || ent.moduleName}
+        type={ent.projectId ? "Project" : "Module"}
+        accessLevel={ent.accessLevel}
+        permissions={ent.permissions}
+        onEdit={() => editEntitlement(ent)}
+        onDelete={() => removeEntitlement(ent.id)}
+      />
+    ))}
+  </CardContent>
+</Card>
+
+{/* Add/Edit Dialog */}
+<Dialog>
+  <Select label="Type" options={["Project", "Module"]} />
+  <Select label="Target" options={projectsOrModules} />
+  <Select label="Access Level" options={["Full", "ReadOnly", "ExportOnly"]} />
+  
+  <Checkboxes>
+    <Checkbox label="Can Create" />
+    <Checkbox label="Can Read" />
+    <Checkbox label="Can Update" />
+    <Checkbox label="Can Delete" />
+    <Checkbox label="Can Export" />
+    <Checkbox label="Display in Menu" />
+  </Checkboxes>
+  
+  {/* Apply Options */}
+  <RadioGroup label="When to apply?">
+    <Radio value="immediate" label="Apply immediately to all subscribers" />
+    <Radio value="nextCycle" label="Apply on next billing cycle" />
+  </RadioGroup>
+  
+  <Checkbox label="Send email notification to all subscribers" defaultChecked />
+</Dialog>
+```
+
+---
+
+## 📦 PHASE 7: Frontend - Subscription Access View
+
+### 7.1 Subscription Detail - Simplified View
+```
+/subscriptions/[id]
+├── Overview Tab
+├── Access Tab (NEW - READ ONLY) ◄── Shows what plan allows
+├── History Tab
+└── Analytics Tab
+```
+
+### 7.2 Access Tab UI (Read-Only)
+```tsx
+// Shows plan's entitlements - CANNOT be edited here
+<Card>
+  <CardHeader>
+    <CardTitle>Subscription Access</CardTitle>
+    <CardDescription>
+      Access is defined by the plan: {subscription.planName}
+      <Link href={`/plans/${subscription.planId}`}>Edit Plan Entitlements</Link>
+    </CardDescription>
+  </CardHeader>
+  
+  <CardContent>
+    {/* Current Access Mode */}
+    <AccessModeCard mode={subscription.accessMode} />
+    
+    {/* Read-only list of what they can access */}
+    <h3>Projects</h3>
+    {plan.entitlements.filter(e => e.projectId).map(ent => (
+      <AccessRow 
+        key={ent.id}
+        name={ent.projectName}
+        accessLevel={ent.accessLevel}
+        permissions={ent.permissions}
+        readOnly={true}  // Cannot edit!
+      />
+    ))}
+    
+    <h3>Modules</h3>
+    {plan.entitlements.filter(e => e.moduleId).map(ent => (
+      <AccessRow 
+        key={ent.id}
+        name={ent.moduleName}
+        accessLevel={ent.accessLevel}
+        permissions={ent.permissions}
+        readOnly={true}  // Cannot edit!
+      />
+    ))}
+  </CardContent>
+</Card>
+```
+
+---
+
+## 📦 PHASE 8: Testing & Migration
+
+### 8.1 Database Migration
 ```sql
--- New Table
-CREATE TABLE SubscriptionEntitlements (
+-- 1. Create PlanEntitlements table
+CREATE TABLE PlanEntitlements (
     Id UNIQUEIDENTIFIER PRIMARY KEY,
-    SubscriptionId UNIQUEIDENTIFIER NOT NULL,
-    ProjectId UNIQUEIDENTIFIER NULL,
-    ModuleId UNIQUEIDENTIFIER NULL,
-    GrantType INT NOT NULL,
+    PlanId UNIQUEIDENTIFIER NOT NULL REFERENCES SubscriptionPlans(Id),
+    ProjectId UNIQUEIDENTIFIER NULL REFERENCES Projects(Id),
+    ModuleId UNIQUEIDENTIFIER NULL REFERENCES Modules(Id),
     AccessLevel INT NOT NULL DEFAULT 1,
-    Source INT NOT NULL,
-    IsCustom BIT NOT NULL DEFAULT 0,
     CanCreate BIT NOT NULL DEFAULT 1,
     CanRead BIT NOT NULL DEFAULT 1,
     CanUpdate BIT NOT NULL DEFAULT 1,
     CanDelete BIT NOT NULL DEFAULT 1,
     CanExport BIT NOT NULL DEFAULT 1,
-    Features NVARCHAR(2000) NULL,
-    UsageLimits NVARCHAR(2000) NULL,
-    GrantedByAdminId UNIQUEIDENTIFIER NULL,
-    ExpiresAt DATETIME2 NULL,
-    Notes NVARCHAR(500) NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
+    DisplayInMenu BIT NOT NULL DEFAULT 1,
     -- Audit fields
-    CreatedTimestamp DATETIME2 NOT NULL,
-    UpdatedTimestamp DATETIME2 NULL,
-    CreatedBy NVARCHAR(100) NULL,
-    UpdatedBy NVARCHAR(100) NULL,
+    CreatedAt DATETIME2 NOT NULL,
+    CreatedBy NVARCHAR(100),
+    ModifiedAt DATETIME2,
+    ModifiedBy NVARCHAR(100),
+    IsDeleted BIT NOT NULL DEFAULT 0,
+    CONSTRAINT CK_PlanEntitlement_Target CHECK (
+        (ProjectId IS NOT NULL AND ModuleId IS NULL) OR 
+        (ProjectId IS NULL AND ModuleId IS NOT NULL)
+    )
+);
+
+-- 2. Add EntitlementVersion to SubscriptionPlans
+ALTER TABLE SubscriptionPlans ADD EntitlementVersion INT NOT NULL DEFAULT 1;
+
+-- 3. Create PlanChangeSchedules table
+CREATE TABLE PlanChangeSchedules (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    PlanId UNIQUEIDENTIFIER NOT NULL REFERENCES SubscriptionPlans(Id),
+    ChangeType INT NOT NULL,
+    ChangeDescription NVARCHAR(500),
+    ChangedFieldsJson NVARCHAR(MAX),
+    ApplyImmediately BIT NOT NULL DEFAULT 0,
+    ScheduledForUtc DATETIME2,
+    Status INT NOT NULL DEFAULT 1,
+    AppliedAtUtc DATETIME2,
+    NotifySubscribers BIT NOT NULL DEFAULT 1,
+    NotificationSent BIT NOT NULL DEFAULT 0,
+    NotificationSentAtUtc DATETIME2,
+    -- Audit fields
+    CreatedAt DATETIME2 NOT NULL,
+    CreatedBy NVARCHAR(100),
+    ModifiedAt DATETIME2,
+    ModifiedBy NVARCHAR(100),
     IsDeleted BIT NOT NULL DEFAULT 0
 );
 
--- Subscriptions additions
-ALTER TABLE Subscriptions ADD
-    AccessMode INT NOT NULL DEFAULT 1,
-    FallbackPlanId UNIQUEIDENTIFIER NULL,
-    ExportDeadlineUtc DATETIME2 NULL,
-    EntitlementsVersion INT NOT NULL DEFAULT 1,
-    AccessRestrictionMessage NVARCHAR(500) NULL;
-
--- SubscriptionPlans additions
-ALTER TABLE SubscriptionPlans ADD
-    IsFreeTier BIT NOT NULL DEFAULT 0,
-    FallbackAccessMode INT NOT NULL DEFAULT 2,
-    ExportGraceDays INT NOT NULL DEFAULT 30,
-    DefaultFallbackPlanId UNIQUEIDENTIFIER NULL;
+-- 4. DROP old SubscriptionEntitlements table (after backup)
+-- BACKUP: SELECT * INTO SubscriptionEntitlements_Backup FROM SubscriptionEntitlements;
+-- DROP TABLE SubscriptionEntitlements;
 ```
 
-### Token Structure (Thin - Online)
-
-```json
-{
-  "jti": "token-guid",
-  "iat": 1701302400,
-  "exp": 1732838400,
-  "company_id": "guid",
-  "subscription_id": "guid",
-  "token_id": "guid",
-  "token_version": "1.0",
-  "entitlements_version": 5
-}
-```
-
-### Entitlements Response Structure
-
-```json
-{
-  "version": 5,
-  "generated_at": "2025-11-30T12:00:00Z",
-  "cache_until": "2025-12-01T12:00:00Z",
-  "access_mode": "Full",
-  "days_remaining": 45,
-  "allowed_operations": ["GET", "POST", "PUT", "DELETE", "EXPORT"],
-  
-  "entitled": {
-    "projects": [
-      {
-        "project_id": "guid",
-        "project_name": "ERP",
-        "grant_type": "FullProject",
-        "access_level": "Full",
-        "operations": ["GET", "POST", "PUT", "DELETE", "EXPORT"],
-        "modules": [
-          { "id": "hr-guid", "name": "HR", "access": "Full" },
-          { "id": "finance-guid", "name": "Finance", "access": "Full" }
-        ]
-      }
-    ],
-    "standalone_modules": [],
-    "usage_limits": {
-      "api_calls_per_month": 10000,
-      "storage_mb": 5120
-    }
-  },
-  
-  "available_upgrades": {
-    "show_locked_menus": true,
-    "locked_items": [
-      {
-        "type": "module",
-        "project": "ERP",
-        "id": "accounting-guid",
-        "name": "Accounting",
-        "description": "Manage accounts, ledgers, and financial reports",
-        "icon": "calculator",
-        "display_in_menu": true,
-        "upgrade_cta": "Upgrade to Enterprise",
-        "upgrade_url": "/upgrade?module=accounting"
-      },
-      {
-        "type": "module",
-        "project": "ERP",
-        "id": "inventory-guid",
-        "name": "Inventory",
-        "display_in_menu": true,
-        "upgrade_cta": "Upgrade to Enterprise"
-      }
-    ]
-  },
-  
-  "menu_config": {
-    "show_locked_items": true,
-    "locked_item_style": "greyed_with_lock",
-    "show_upgrade_badge": true,
-    "group_locked_separately": false
-  }
-}
-```
-
-### License Key Structure (Offline)
-
-```json
-{
-  "v": 3,
-  "cid": "company-guid",
-  "sid": "subscription-guid",
-  "cn": "Acme Corp",
-  "pn": "Enterprise",
-  "iat": 1701302400,
-  "exp": 1732838400,
-  "gexp": 1733443200,
-  "xdl": 1736035200,
-  "am": "Full",
-  "ent": {
-    "projects": [...],
-    "modules": [...],
-    "limits": {...}
-  },
-  "sig": "hmac-signature"
-}
+### 8.2 Data Migration
+```csharp
+// If there was any data in SubscriptionEntitlements, migrate to PlanEntitlements
+// Group by plan and create unique entries
 ```
 
 ---
 
-## 🔐 SECURITY & CACHING MODEL
+## 📊 SUMMARY: Old vs New
 
-### Three Levels of Caching
-
-```
-LAYER 1: SYNFLOX Server Cache (Redis)
-├── Cache entitlement matrix per subscription
-├── TTL: Until version changes
-├── Invalidated on: grant, revoke, upgrade, mode change
-└── Security: ✅ Fully controlled
-
-LAYER 2: Client's Backend Cache (Redis/Memory)
-├── Cache response from SYNFLOX
-├── TTL: 24 hours or until X-Entitlements-Version changes
-├── Used for: Validating every user request
-└── Security: ✅ User cannot access
-
-LAYER 3: Client's Frontend Cache (localStorage/Memory)
-├── Cache for UI display only
-├── TTL: Session or until refresh
-├── Used for: Showing menus, reducing API calls
-├── Security: ⚠️ User CAN tamper (but doesn't matter - display only)
-└── Encrypted: NO NEED (public info to user anyway)
-```
-
-### Why Frontend Tampering Doesn't Matter
-
-```
-User tampers with localStorage → Sees extra menus
-        ↓
-User clicks locked feature
-        ↓
-Request goes to Client's Backend
-        ↓
-Backend checks its SECURE cache
-        ↓
-Cache says: "Feature = LOCKED"
-        ↓
-Backend returns: 403 Forbidden
-        ↓
-Security Impact: ZERO ✅
-```
-
-### Key Security Principles
-
-1. **Frontend is NEVER trusted** - It's just for display
-2. **Security is ALWAYS server-side** - Both SYNFLOX and Client's Backend
-3. **Entitlements are for authorization** - Token is for authentication
-4. **Version header signals changes** - Client knows when to refresh
-5. **Offline systems use signed licenses** - Can't tamper with encrypted data
+| Aspect | OLD (v1) | NEW (v2) |
+|--------|----------|----------|
+| **Entitlements defined on** | Subscription (each one unique) | Plan (same for all subscribers) |
+| **Entity** | SubscriptionEntitlement | PlanEntitlement |
+| **Manual granting** | Admin grants per subscription | Admin defines per plan |
+| **Upgrade handling** | Copy entitlements manually | Automatic (new plan = new access) |
+| **Fallback handling** | Complex recalculation | Automatic (fallback plan access) |
+| **UI location** | /subscriptions/[id]/entitlements | /plans/[id] (Entitlements tab) |
+| **Security** | Risk: can grant anything | Safe: plan defines limits |
+| **Plan changes** | Not supported | Schedule for next cycle + notify |
 
 ---
 
-## 📝 NOTES & REMINDERS
+## 🚀 IMPLEMENTATION ORDER
 
-- **Server Time**: Background job uses server local time for daily operations
-- **Version Increment**: Any entitlement change increments subscription's EntitlementsVersion
-- **Cache Duration**: Client should cache entitlements for 24 hours
-- **Force Refresh**: X-Entitlements-Version header signals version change
-- **Offline Sync**: Offline clients should sync when online to get latest license
-- **Marketing Display**: Use `available_upgrades` and `menu_config` to control locked item visibility
+### Step 1: Backend - Remove Old System
+1. Backup SubscriptionEntitlements data
+2. Remove SubscriptionEntitlement entity
+3. Remove related DTOs
+4. Remove EntitlementService (old version)
+
+### Step 2: Backend - Create New System
+1. Create PlanEntitlement entity
+2. Create PlanChangeSchedule entity
+3. Update SubscriptionPlan entity
+4. Create EF configurations
+5. Run migration
+
+### Step 3: Backend - New Services
+1. Create IPlanEntitlementService
+2. Create IPlanChangeService
+3. Create IPlanNotificationService
+4. Update ClientApiController
+
+### Step 4: Frontend - Remove Old
+1. Delete entitlement-detail-view.tsx
+2. Delete entitlement-viewmodel.ts
+3. Delete entitlement.service.ts
+4. Delete entitlement.model.ts
+
+### Step 5: Frontend - Plan Entitlements
+1. Create plan-entitlements-view.tsx
+2. Add Entitlements tab to plan detail page
+3. Create add/edit entitlement dialog
+4. Add change scheduling options
+
+### Step 6: Frontend - Subscription Access
+1. Create subscription-access-view.tsx (read-only)
+2. Add Access tab to subscription detail page
+3. Show plan's entitlements
+4. Link to plan for editing
+
+### Step 7: Testing
+1. Create plan with entitlements
+2. Subscribe company to plan
+3. Verify client API returns plan entitlements
+4. Test upgrade/downgrade
+5. Test plan change scheduling
+6. Test email notifications
 
 ---
 
-## 🔄 CHANGE LOG
+## ✅ ACCEPTANCE CRITERIA
 
-| Date | Phase | Step | Change |
-|------|-------|------|--------|
-| - | - | - | - |
+1. **All subscriptions of same plan have identical access**
+2. **No manual per-subscription granting (except promotional)**
+3. **Plan entitlements defined in plan management UI**
+4. **Client API returns plan's entitlements**
+5. **Plan changes can be scheduled for next billing cycle**
+6. **Subscribers notified of plan changes via email**
+7. **Upgrade automatically grants new plan's access**
+8. **Fallback automatically uses fallback plan's access**
+9. **Version number increments on entitlement changes**
+10. **Clients can check version to know when to refresh cache**
 
 ---
 
-**Ready to start Phase 1!**
+*Last Updated: December 1, 2025*
+*Version: 2.0 - Complete Redesign*
