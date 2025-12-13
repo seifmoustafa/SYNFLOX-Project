@@ -1,6 +1,6 @@
-[submodule "SYNFLOX"]
-	path = SYNFLOX
-	url = https://github.com/seifmoustafa/SYNFLOX.git
+[submodule "synflox-backend"]
+	path = synflox-backend
+	url = https://github.com/seifmoustafa/synflox-backend.git
 [submodule "synflox-frontend"]
 	path = synflox-frontend
 	url = https://github.com/seifmoustafa/synflox-frontend.git
